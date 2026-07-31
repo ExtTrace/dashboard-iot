@@ -148,65 +148,70 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
 
       {/* Top Navbar Header */}
       <nav className="border-b border-slate-800/80 bg-[#0a0e17]/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-sm font-semibold text-white tracking-wide">
-              Climate Control Unit
-            </span>
-            <span className="text-slate-600">/</span>
-            <span className="font-mono text-xs text-slate-400 font-medium">
-              {device?.device_id || 'ESP32-ROOM-01'}
-            </span>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 text-xs text-slate-400">
-              <Radio className="w-3 h-3 text-emerald-400" />
-              <span>
-                {activeLocation?.location_name || device?.location_id}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Row utama */}
+          <div className="h-14 flex items-center justify-between gap-2">
+            {/* Kiri: brand + device id */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+              <span className="text-sm font-semibold text-white tracking-wide whitespace-nowrap">
+                Climate Control
+              </span>
+              <span className="text-slate-600 flex-shrink-0">/</span>
+              <span className="font-mono text-xs text-slate-400 truncate">
+                {device?.device_id || 'ESP32-ROOM-01'}
               </span>
             </div>
 
-            {/* Hardware Power Toggle Switch */}
-            <button
-              onClick={handlePowerToggle}
-              disabled={togglingPower}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition cursor-pointer disabled:cursor-not-allowed ${
-                device?.is_active
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
-              }`}
-            >
-              <Power
-                className={`w-3.5 h-3.5 ${togglingPower ? 'animate-spin' : ''}`}
-              />
-              <span>
-                {device?.is_active ? 'POWER: ACTIVE' : 'POWER: PAUSED'}
-              </span>
-            </button>
+            {/* Kanan: controls */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Location badge — sembunyi di xs */}
+              <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-slate-900 border border-slate-800 text-xs text-slate-400 whitespace-nowrap">
+                <Radio className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                <span className="truncate max-w-[120px]">
+                  {activeLocation?.location_name || device?.location_id}
+                </span>
+              </div>
 
-            <button
-              onClick={() => fetchData(true)}
-              disabled={refreshing}
-              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer disabled:cursor-not-allowed"
-              title="Refresh Data"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-400' : ''}`}
-              />
-            </button>
-
-            {onLogout && (
+              {/* Power button — teks hanya di sm+ */}
               <button
-                onClick={onLogout}
-                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/20 text-xs font-medium transition cursor-pointer"
-                title="Keluar dari Sistem (Logout)"
+                onClick={handlePowerToggle}
+                disabled={togglingPower}
+                title={device?.is_active ? 'POWER: ACTIVE' : 'POWER: PAUSED'}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition cursor-pointer disabled:cursor-not-allowed ${
+                  device?.is_active
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
+                }`}
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Logout ({currentUser})</span>
+                <Power className={`w-3.5 h-3.5 flex-shrink-0 ${togglingPower ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">
+                  {device?.is_active ? 'ACTIVE' : 'PAUSED'}
+                </span>
               </button>
-            )}
+
+              {/* Refresh */}
+              <button
+                onClick={() => fetchData(true)}
+                disabled={refreshing}
+                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer disabled:cursor-not-allowed"
+                title="Refresh Data"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-400' : ''}`} />
+              </button>
+
+              {/* Logout */}
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/20 text-xs font-medium transition cursor-pointer"
+                  title={`Logout (${currentUser})`}
+                >
+                  <LogOut className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -214,49 +219,51 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
         {/* Tab Navigation Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-          <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800/80">
+        <div className="flex flex-col gap-3 border-b border-slate-800/80 pb-4">
+          {/* Tab buttons — full width di mobile */}
+          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
                 activeTab === 'overview'
                   ? 'bg-slate-800 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />
+              <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               <span>Overview</span>
             </button>
 
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
                 activeTab === 'logs'
                   ? 'bg-slate-800 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Table className="w-3.5 h-3.5 text-sky-400" />
+              <Table className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
               <span>Data Logs</span>
             </button>
 
             <button
               onClick={() => setActiveTab('locations')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
                 activeTab === 'locations'
                   ? 'bg-slate-800 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <MapPin className="w-3.5 h-3.5 text-purple-400" />
-              <span>Lokasi & Devices</span>
+              <MapPin className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+              <span className="hidden xs:inline">Lokasi & Devices</span>
+              <span className="xs:hidden">Lokasi</span>
             </button>
           </div>
 
-          {/* Location Filter Bar: ONLY rendered on Overview & Data Logs tabs */}
+          {/* Location Filter Bar — scroll horizontal di mobile */}
           {activeTab !== 'locations' && (
-            <div className="flex items-center space-x-2 text-xs">
-              <span className="text-slate-500 font-medium mr-1 flex items-center space-x-1">
+            <div className="flex items-center gap-2 text-xs overflow-x-auto pb-0.5 scrollbar-hide">
+              <span className="text-slate-500 font-medium flex items-center gap-1 flex-shrink-0">
                 <Building2 className="w-3.5 h-3.5" />
                 <span>Filter:</span>
               </span>
@@ -266,7 +273,7 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
                   setSelectedLocationId('ALL');
                   setPage(1);
                 }}
-                className={`px-2.5 py-1 rounded-md transition text-xs font-medium cursor-pointer ${
+                className={`flex-shrink-0 px-2.5 py-1 rounded-md transition text-xs font-medium cursor-pointer ${
                   selectedLocationId === 'ALL'
                     ? 'bg-slate-800 text-white border border-slate-700 font-semibold'
                     : 'text-slate-400 hover:text-white'
@@ -282,7 +289,7 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
                     setSelectedLocationId(loc.id);
                     setPage(1);
                   }}
-                  className={`px-2.5 py-1 rounded-md transition text-xs font-medium cursor-pointer ${
+                  className={`flex-shrink-0 px-2.5 py-1 rounded-md transition text-xs font-medium cursor-pointer whitespace-nowrap ${
                     selectedLocationId === loc.id
                       ? 'bg-slate-800 text-white border border-slate-700 font-semibold'
                       : 'text-slate-400 hover:text-white'

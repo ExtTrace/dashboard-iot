@@ -51,3 +51,13 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+/* Hide scrollbar tapi tetap bisa scroll (untuk filter horizontal di mobile) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
