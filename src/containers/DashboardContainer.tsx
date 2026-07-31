@@ -9,6 +9,7 @@ import {
   Table,
   MapPin,
   Building2,
+  LogOut,
 } from 'lucide-react';
 import {
   getTelemetryLogs,
@@ -30,7 +31,12 @@ import { MoveDeviceModal } from '../components/MoveDeviceModal';
 
 export type TabType = 'overview' | 'logs' | 'locations';
 
-export function DashboardContainer() {
+interface DashboardContainerProps {
+  currentUser?: string;
+  onLogout?: () => void;
+}
+
+export function DashboardContainer({ currentUser = 'admin', onLogout }: DashboardContainerProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [device, setDevice] = useState<DeviceItem | null>(null);
   const [locations, setLocations] = useState<LocationItem[]>([]);
@@ -190,6 +196,17 @@ export function DashboardContainer() {
                 className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-400' : ''}`}
               />
             </button>
+
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/20 text-xs font-medium transition cursor-pointer"
+                title="Keluar dari Sistem (Logout)"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Logout ({currentUser})</span>
+              </button>
+            )}
           </div>
         </div>
       </nav>

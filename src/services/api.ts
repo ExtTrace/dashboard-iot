@@ -134,3 +134,15 @@ export async function updateDeviceLocation(
   });
   return res.data?.data;
 }
+
+// ─── 4. Authentication API ─────────────────────────────────────────
+export async function loginIoT(
+  username: string,
+  password: string,
+): Promise<{ success: boolean; token: string; user: { username: string }; message?: string }> {
+  const res = await axios.post(`${API_BASE_URL}/login`, {
+    username,
+    password,
+  });
+  return res.data;
+}
