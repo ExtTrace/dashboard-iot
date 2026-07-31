@@ -8,8 +8,6 @@ import {
   EyeOff,
   Activity,
   ArrowRight,
-  Sparkles,
-  KeyRound,
 } from 'lucide-react';
 
 interface LoginPageProps {
@@ -57,12 +55,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setError(msg);
       setLoading(false);
     }
-  };
-
-  const handleQuickDemo = () => {
-    setUsername('admin');
-    setPassword('admin');
-    setError(null);
   };
 
   return (
@@ -118,7 +110,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">
-              Kata Sandi Akses (Password)
+              Password
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -163,29 +155,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             )}
           </button>
         </form>
-
-        {/* Quick Demo Access Bar */}
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
-          <div className="flex items-center space-x-1.5">
-            <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Autentikasi via <code className="text-slate-300 font-mono">Supabase</code></span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleQuickDemo}
-            className="text-emerald-400 hover:underline font-medium flex items-center space-x-1 cursor-pointer"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>Demo</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Footer System Status */}
-      <div className="mt-8 text-center text-[11px] text-slate-600 font-mono space-y-1">
-        <p>SECURITY LEVEL: TELEMETRY ENCRYPTED</p>
-        <p>© 2026 Climate Control System — v2.4.0</p>
       </div>
     </div>
   );
