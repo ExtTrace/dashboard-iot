@@ -221,7 +221,7 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
         {/* Tab Navigation Header */}
         <div className="flex flex-col gap-3 border-b border-slate-800/80 pb-4">
           {/* Tab buttons — full width di mobile */}
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 w-full sm:w-auto">
+          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 w-full sm:w-fit">
             <button
               onClick={() => setActiveTab('overview')}
               className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
