@@ -10,6 +10,7 @@ import {
   MapPin,
   Building2,
   LogOut,
+  Bell,
 } from 'lucide-react';
 import {
   getTelemetryLogs,
@@ -28,6 +29,7 @@ import { LogsPage } from '../pages/LogsPage';
 import { LocationsPage } from '../pages/LocationsPage';
 import { AddLocationModal } from '../components/AddLocationModal';
 import { MoveDeviceModal } from '../components/MoveDeviceModal';
+import { useTelemetryRealtime } from '../hooks/useTelemetryRealtime';
 
 export type TabType = 'overview' | 'logs' | 'locations';
 
@@ -36,7 +38,10 @@ interface DashboardContainerProps {
   onLogout?: () => void;
 }
 
-export function DashboardContainer({ currentUser = 'admin', onLogout }: DashboardContainerProps) {
+export function DashboardContainer({
+  currentUser = 'admin',
+  onLogout,
+}: DashboardContainerProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [device, setDevice] = useState<DeviceItem | null>(null);
   const [locations, setLocations] = useState<LocationItem[]>([]);
@@ -50,6 +55,9 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
   const [togglingPower, setTogglingPower] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // New data notification counter (React Memory state)
+  const [newDataCount, setNewDataCount] = useState<number>(0);
+
   // Modal Controls
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
   const [isMoveDeviceOpen, setIsMoveDeviceOpen] = useState(false);
@@ -61,29 +69,41 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
     }, 4000);
   };
 
-  const fetchData = useCallback(
-    async (showIndicator = false) => {
+  // ─── Fetch static data: locations + device status (once on mount) ────
+  const fetchStaticData = useCallback(async () => {
+    try {
+      const [deviceData, locList] = await Promise.all([
+        getDeviceStatus('ESP32-ROOM-01'),
+        getLocations(),
+      ]);
+      setDevice(deviceData);
+      setLocations(locList);
+    } catch (err) {
+      console.error('Error fetching static data:', err);
+    }
+  }, []);
+
+  // ─── Fetch telemetry logs (paginated, user-controlled) ───────────────
+  const fetchTelemetry = useCallback(
+    async (showIndicator = false, resetToPage1 = false) => {
       try {
         if (showIndicator) setRefreshing(true);
-
-        const deviceData = await getDeviceStatus('ESP32-ROOM-01');
-        setDevice(deviceData);
-
-        const locList = await getLocations();
-        setLocations(locList);
+        const targetPage = resetToPage1 ? 1 : page;
+        if (resetToPage1) setPage(1);
 
         const telemetryRes = await getTelemetryLogs(
           'ESP32-ROOM-01',
-          page,
+          targetPage,
           limit,
           selectedLocationId,
         );
         setTelemetryLogs(telemetryRes.data);
-        if (telemetryRes.pagination) {
-          setPagination(telemetryRes.pagination);
-        }
-      } catch (err: any) {
-        console.error('Error fetching dashboard data:', err);
+        if (telemetryRes.pagination) setPagination(telemetryRes.pagination);
+
+        // Mark entry as seen — clears new data counter
+        setNewDataCount(0);
+      } catch (err) {
+        console.error('Error fetching telemetry:', err);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -92,14 +112,29 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
     [page, limit, selectedLocationId],
   );
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(() => {
-      fetchData(false);
-    }, 10000);
+  // ─── Supabase Realtime Listener (0 Vercel polling requests!) ────────
+  const handleRealtimeTelemetry = useCallback(() => {
+    setNewDataCount((prev) => prev + 1);
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  useTelemetryRealtime({
+    onNewTelemetry: handleRealtimeTelemetry,
+    locationId: selectedLocationId,
+  });
+
+  // ─── Initial load: static + telemetry ────────────────────────────────
+  useEffect(() => {
+    const init = async () => {
+      await fetchStaticData();
+      await fetchTelemetry();
+    };
+    init();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Re-fetch telemetry when page/limit/filter changes ───────────────
+  useEffect(() => {
+    if (!loading) fetchTelemetry();
+  }, [page, limit, selectedLocationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePowerToggle = async () => {
     if (!device) return;
@@ -184,21 +219,57 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
                     : 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
                 }`}
               >
-                <Power className={`w-3.5 h-3.5 flex-shrink-0 ${togglingPower ? 'animate-spin' : ''}`} />
+                <Power
+                  className={`w-3.5 h-3.5 flex-shrink-0 ${togglingPower ? 'animate-spin' : ''}`}
+                />
                 <span className="hidden sm:inline">
                   {device?.is_active ? 'ACTIVE' : 'PAUSED'}
                 </span>
               </button>
 
               {/* Refresh */}
-              <button
-                onClick={() => fetchData(true)}
-                disabled={refreshing}
-                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer disabled:cursor-not-allowed"
-                title="Refresh Data"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-400' : ''}`} />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => fetchTelemetry(true, true)}
+                  disabled={refreshing}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer disabled:cursor-not-allowed"
+                  title="Refresh Data"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-400' : ''}`}
+                  />
+                </button>
+                {newDataCount > 0 && (
+                  <div className="absolute -right-3 top-full mt-4 z-50 animate-float">
+                    <svg
+                      className="absolute -top-[7px] right-5 z-20"
+                      width="16"
+                      height="8"
+                      viewBox="0 0 16 8"
+                    >
+                      <path d="M0 8 L8 0 L16 8 Z" fill="#0f172a" />
+                      <path
+                        d="M1 8 L8 1 L15 8"
+                        fill="none"
+                        stroke="rgba(52,211,153,.4)"
+                        strokeWidth="1"
+                      />
+                    </svg>
+
+                    {/* Bubble */}
+                    <div className="relative whitespace-nowrap rounded-xl bg-slate-900 border border-emerald-500/40 px-3 py-2 text-xs text-emerald-300 shadow-2xl flex items-center gap-2">
+                      <span className="relative flex w-3.5 h-3.5">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+                        <Bell className="relative w-3.5 h-3.5 text-emerald-400" />
+                      </span>
+
+                      <span>
+                        <strong className="font-mono text-emerald-400 font-bold">{newDataCount}</strong> data telemetry baru tersedia
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Logout */}
               {onLogout && (
@@ -236,7 +307,7 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
 
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+              className={`relative flex items-center justify-center gap-1.5 flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
                 activeTab === 'logs'
                   ? 'bg-slate-800 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -244,6 +315,12 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
             >
               <Table className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
               <span>Data Logs</span>
+              {/* Badge counter when new telemetry data is available */}
+              {newDataCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 animate-pulse">
+                  +{newDataCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -308,17 +385,19 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
         )}
 
         {activeTab === 'logs' && (
-          <LogsPage
-            telemetryLogs={telemetryLogs}
-            pagination={pagination}
-            page={page}
-            limit={limit}
-            onPageChange={(p) => setPage(p)}
-            onLimitChange={(l) => {
-              setLimit(l);
-              setPage(1);
-            }}
-          />
+          <div className="space-y-3">
+            <LogsPage
+              telemetryLogs={telemetryLogs}
+              pagination={pagination}
+              page={page}
+              limit={limit}
+              onPageChange={(p) => setPage(p)}
+              onLimitChange={(l) => {
+                setLimit(l);
+                setPage(1);
+              }}
+            />
+          </div>
         )}
 
         {activeTab === 'locations' && (
@@ -335,7 +414,10 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
       <AddLocationModal
         isOpen={isAddLocationOpen}
         onClose={() => setIsAddLocationOpen(false)}
-        onLocationAdded={() => fetchData(true)}
+        onLocationAdded={() => {
+          fetchStaticData();
+          fetchTelemetry(true, true);
+        }}
       />
 
       <MoveDeviceModal
@@ -344,7 +426,10 @@ export function DashboardContainer({ currentUser = 'admin', onLogout }: Dashboar
         deviceId={device?.device_id || 'ESP32-ROOM-01'}
         currentLocationId={device?.location_id}
         locations={locations}
-        onDeviceMoved={() => fetchData(true)}
+        onDeviceMoved={() => {
+          fetchStaticData();
+          fetchTelemetry(true, true);
+        }}
       />
     </div>
   );
