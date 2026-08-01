@@ -111,7 +111,7 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({
                   {new Date(loc.created_at).toLocaleDateString('id-ID')}
                 </span>
                 <span className="text-emerald-400 font-medium">
-                  Status: Active
+                  Status: {loc.is_active ? 'Aktif' : 'Nonaktif'}
                 </span>
               </div>
             </div>

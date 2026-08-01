@@ -106,8 +106,12 @@ export async function toggleDevicePower(
 }
 
 // ─── 3. Locations API ──────────────────────────────────────────────
-export async function getLocations(): Promise<LocationItem[]> {
-  const res = await axios.get(`${API_BASE_URL}/locations`);
+export async function getLocations(
+  is_active: boolean = true,
+): Promise<LocationItem[]> {
+  const res = await axios.get(`${API_BASE_URL}/locations`, {
+    params: { is_active },
+  });
   return res.data?.data || [];
 }
 
@@ -139,7 +143,12 @@ export async function updateDeviceLocation(
 export async function loginIoT(
   username: string,
   password: string,
-): Promise<{ success: boolean; token: string; user: { username: string }; message?: string }> {
+): Promise<{
+  success: boolean;
+  token: string;
+  user: { username: string };
+  message?: string;
+}> {
   const res = await axios.post(`${API_BASE_URL}/login`, {
     username,
     password,
