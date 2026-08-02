@@ -9,6 +9,8 @@ interface LogsTableProps {
   onLimitChange: (newLimit: number) => void;
 }
 
+type DurationFormat = 'human' | 'days' | 'weeks';
+
 export const LogsTable: React.FC<LogsTableProps> = ({
   logs,
   dateRange,
@@ -16,6 +18,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   onLimitChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [durationFormat, setDurationFormat] = useState<DurationFormat>('human');
 
   const filteredLogs = logs.filter((log) => {
     const locName = log.iot_locations?.location_name || log.location_id || '';
@@ -28,6 +31,16 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     );
   });
 
+  const toggleDurationFormat = () => {
+    const formats: DurationFormat[] = ['human', 'weeks', 'days'];
+
+    setDurationFormat((prev) => {
+      const currentIndex = formats.indexOf(prev);
+      const nextIndex = (currentIndex + 1) % formats.length;
+      return formats[nextIndex];
+    });
+  };
+
   const formatDate = (date: string | null) => {
     if (!date) return '-';
 
@@ -38,17 +51,76 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     });
   };
 
-  const getTotalDays = () => {
-    if (!dateRange?.oldest || !dateRange?.latest) return null;
+  const getTotalDays = (oldest: string | null, latest: string | null) => {
+    if (!oldest || !latest) return null;
 
-    const start = new Date(dateRange?.oldest);
-    const end = new Date(dateRange?.latest);
+    const start = new Date(oldest);
+    const end = new Date(latest);
 
     const diff = Math.floor(
       (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     return diff + 1;
+  };
+
+  const totalDays = getTotalDays(
+    dateRange?.oldest ?? null,
+    dateRange?.latest ?? null,
+  );
+
+  const formatDuration = (
+    days: number | null,
+    format: DurationFormat = 'human',
+  ) => {
+    if (days === null) return '-';
+
+    switch (format) {
+      case 'days':
+        return `${days} hari`;
+
+      case 'weeks': {
+        const weeks = Math.floor(days / 7);
+        const remainingDays = days % 7;
+
+        const parts: string[] = [];
+
+        if (weeks > 0) {
+          parts.push(`${weeks} minggu`);
+        }
+
+        if (remainingDays > 0) {
+          parts.push(`${remainingDays} hari`);
+        }
+
+        return parts.join(' ');
+      }
+
+      case 'human':
+      default: {
+        const months = Math.floor(days / 30);
+        const remainingAfterMonths = days % 30;
+
+        const weeks = Math.floor(remainingAfterMonths / 7);
+        const remainingDays = remainingAfterMonths % 7;
+
+        const parts: string[] = [];
+
+        if (months > 0) {
+          parts.push(`${months} bulan`);
+        }
+
+        if (weeks > 0) {
+          parts.push(`${weeks} minggu`);
+        }
+
+        if (remainingDays > 0) {
+          parts.push(`${remainingDays} hari`);
+        }
+
+        return parts.join(' ');
+      }
+    }
   };
 
   return (
@@ -65,8 +137,11 @@ export const LogsTable: React.FC<LogsTableProps> = ({
             <span className="mx-2 inline-block -translate-y-px">
               <strong>•</strong>
             </span>
-            <span className="text-emerald-400 font-medium">
-              {getTotalDays()} hari
+            <span
+              onClick={toggleDurationFormat}
+              className="cursor-pointer text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              {formatDuration(totalDays, durationFormat)}
             </span>
           </span>
           <p className="text-xs text-slate-400">
