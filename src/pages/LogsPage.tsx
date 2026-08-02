@@ -1,11 +1,12 @@
 import React from 'react';
-import type { TelemetryLog, PaginationInfo } from '../services/api';
+import type { TelemetryLog, PaginationInfo, DateRange } from '../services/api';
 import { LogsTable } from '../components/LogsTable';
 import { PaginationBar } from '../components/PaginationBar';
 
 interface LogsPageProps {
   telemetryLogs: TelemetryLog[];
   pagination: PaginationInfo | null;
+  dateRange: DateRange | null;
   page: number;
   limit: number;
   onPageChange: (newPage: number) => void;
@@ -15,6 +16,7 @@ interface LogsPageProps {
 export const LogsPage: React.FC<LogsPageProps> = ({
   telemetryLogs,
   pagination,
+  dateRange,
   page,
   limit,
   onPageChange,
@@ -31,6 +33,7 @@ export const LogsPage: React.FC<LogsPageProps> = ({
       {/* Telemetry Logs Table */}
       <LogsTable
         logs={telemetryLogs}
+        dateRange={dateRange}
         limit={limit}
         onLimitChange={onLimitChange}
       />

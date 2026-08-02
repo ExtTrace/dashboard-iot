@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { Search, Clock, ShieldAlert, ShieldCheck } from 'lucide-react';
-import type { TelemetryLog } from '../services/api';
+import type { DateRange, TelemetryLog } from '../services/api';
 
 interface LogsTableProps {
   logs: TelemetryLog[];
+  dateRange: DateRange | null;
   limit: number;
   onLimitChange: (newLimit: number) => void;
 }
 
-export const LogsTable: React.FC<LogsTableProps> = ({ logs, limit, onLimitChange }) => {
+export const LogsTable: React.FC<LogsTableProps> = ({
+  logs,
+  dateRange,
+  limit,
+  onLimitChange,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredLogs = logs.filter((log) => {
@@ -16,8 +22,34 @@ export const LogsTable: React.FC<LogsTableProps> = ({ logs, limit, onLimitChange
     const devId = log.device_id || '';
     const search = searchTerm.toLowerCase();
 
-    return locName.toLowerCase().includes(search) || devId.toLowerCase().includes(search);
+    return (
+      locName.toLowerCase().includes(search) ||
+      devId.toLowerCase().includes(search)
+    );
   });
+
+  const formatDate = (date: string | null) => {
+    if (!date) return '-';
+
+    return new Date(date).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const getTotalDays = () => {
+    if (!dateRange?.oldest || !dateRange?.latest) return null;
+
+    const start = new Date(dateRange?.oldest);
+    const end = new Date(dateRange?.latest);
+
+    const diff = Math.floor(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    return diff + 1;
+  };
 
   return (
     <div className="card-panel rounded-2xl p-6 border border-slate-800/80 space-y-4">
@@ -26,6 +58,17 @@ export const LogsTable: React.FC<LogsTableProps> = ({ logs, limit, onLimitChange
           <h3 className="text-sm font-semibold text-white tracking-wide">
             Riwayat Log Telemetry
           </h3>
+          <span className="text-sm text-slate-300">
+            {formatDate(dateRange?.oldest ?? null)}
+            {' - '}
+            {formatDate(dateRange?.latest ?? null)}
+            <span className="mx-2 inline-block -translate-y-px">
+              <strong>•</strong>
+            </span>
+            <span className="text-emerald-400 font-medium">
+              {getTotalDays()} hari
+            </span>
+          </span>
           <p className="text-xs text-slate-400">
             Pencatatan data mentah sensor & analisis kondisi udara
           </p>

@@ -23,6 +23,7 @@ import type {
   DeviceItem,
   LocationItem,
   PaginationInfo,
+  DateRange,
 } from '../services/api';
 import { OverviewPage } from '../pages/OverviewPage';
 import { LogsPage } from '../pages/LogsPage';
@@ -48,6 +49,7 @@ export function DashboardContainer({
   const [selectedLocationId, setSelectedLocationId] = useState<string>('ALL');
   const [telemetryLogs, setTelemetryLogs] = useState<TelemetryLog[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(20);
   const [loading, setLoading] = useState<boolean>(true);
@@ -98,7 +100,10 @@ export function DashboardContainer({
           selectedLocationId,
         );
         setTelemetryLogs(telemetryRes.data);
-        if (telemetryRes.pagination) setPagination(telemetryRes.pagination);
+        if (telemetryRes.meta.pagination)
+          setPagination(telemetryRes.meta.pagination);
+        if (telemetryRes.meta.dateRange)
+          setDateRange(telemetryRes.meta.dateRange);
 
         // Mark entry as seen — clears new data counter
         setNewDataCount(0);
@@ -264,7 +269,10 @@ export function DashboardContainer({
                       </span>
 
                       <span>
-                        <strong className="font-mono text-emerald-400 font-bold">{newDataCount}</strong> data telemetry baru tersedia
+                        <strong className="font-mono text-emerald-400 font-bold">
+                          {newDataCount}
+                        </strong>{' '}
+                        data telemetry baru tersedia
                       </span>
                     </div>
                   </div>
@@ -389,6 +397,7 @@ export function DashboardContainer({
             <LogsPage
               telemetryLogs={telemetryLogs}
               pagination={pagination}
+              dateRange={dateRange}
               page={page}
               limit={limit}
               onPageChange={(p) => setPage(p)}

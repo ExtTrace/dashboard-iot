@@ -52,11 +52,21 @@ export interface PaginationInfo {
   hasPrev: boolean;
 }
 
+export interface DateRange {
+  oldest: string | null;
+  latest: string | null;
+}
+
+export interface MetadataInfo {
+  count: number;
+  pagination: PaginationInfo;
+  dateRange: DateRange;
+}
+
 export interface TelemetryResponse {
   success: boolean;
-  pagination?: PaginationInfo;
-  count: number;
   data: TelemetryLog[];
+  meta: MetadataInfo;
 }
 
 // ─── 1. Telemetry API (with full Pagination support) ─────────────────
@@ -73,9 +83,8 @@ export async function getTelemetryLogs(
   const res = await axios.get(`${API_BASE_URL}/telemetry`, { params });
   return {
     success: res.data?.success || false,
-    pagination: res.data?.pagination,
-    count: res.data?.count || 0,
     data: res.data?.data || [],
+    meta: res.data.meta || undefined,
   };
 }
 
