@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -14,43 +14,117 @@ interface TelemetryChartProps {
   logs: TelemetryLog[];
 }
 
+export type TimeRange = '30m' | '1h' | '6h' | '12h' | '24h';
+
 export const TelemetryChart: React.FC<TelemetryChartProps> = ({ logs }) => {
-  const chartData = [...logs].reverse().map((item) => {
-    const analytics = Array.isArray(item.iot_room_analytics)
-      ? item.iot_room_analytics[0]
-      : item.iot_room_analytics;
+  const [range, setRange] = useState<TimeRange>('24h');
 
-    const date = new Date(item.created_at);
-    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Filter logs based on selected time range
+  const filteredLogs = useMemo(() => {
+    if (!logs || logs.length === 0) return [];
 
-    return {
-      time: timeString,
-      temperature: Number(item.temperature),
-      humidity: Number(item.humidity),
-      dewPoint: analytics?.dew_point ? Number(analytics.dew_point) : null,
+    const now = Date.now();
+    const hoursMap: Record<TimeRange, number> = {
+      '30m': 0.5,
+      '1h': 1,
+      '6h': 6,
+      '12h': 12,
+      '24h': 24,
     };
-  });
+
+    const cutoff = now - hoursMap[range] * 60 * 60 * 1000;
+    const filtered = logs.filter(
+      (item) => new Date(item.created_at).getTime() >= cutoff,
+    );
+
+    // Fallback if timestamps are outside strict cutoff range (e.g. testing data)
+    if (filtered.length === 0) {
+      const fallbackSliceMap: Record<TimeRange, number> = {
+        '30m': 6,
+        '1h': 12,
+        '6h': 72,
+        '12h': 144,
+        '24h': 288,
+      };
+      return logs.slice(0, fallbackSliceMap[range]);
+    }
+
+    return filtered;
+  }, [logs, range]);
+
+  const chartData = useMemo(() => {
+    return [...filteredLogs].reverse().map((item) => {
+      const analytics = Array.isArray(item.iot_room_analytics)
+        ? item.iot_room_analytics[0]
+        : item.iot_room_analytics;
+
+      const date = new Date(item.created_at);
+      const timeString = date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      return {
+        time: timeString,
+        temperature: Number(item.temperature),
+        humidity: Number(item.humidity),
+        dewPoint: analytics?.dew_point ? Number(analytics.dew_point) : null,
+      };
+    });
+  }, [filteredLogs]);
 
   return (
     <div className="card-panel rounded-2xl p-6 border border-slate-800/80">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/60 gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800/60 gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-white tracking-wide">Tren Suhu & Kelembapan</h3>
-          <p className="text-xs text-slate-400">Pencatatan data telemetry real-time</p>
+          <h3 className="text-sm font-semibold text-white tracking-wide">
+            Tren Suhu & Kelembapan
+          </h3>
+          <p className="text-xs text-slate-400">
+            Pencatatan data telemetry real-time
+          </p>
         </div>
 
-        <div className="flex items-center space-x-4 text-xs font-medium">
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-            <span className="text-slate-300">Suhu (°C)</span>
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Time Range Filter Buttons */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs overflow-x-auto scrollbar-hide">
+            {(
+              [
+                { id: '30m', label: '30m' },
+                { id: '1h', label: '1j' },
+                { id: '6h', label: '6j' },
+                { id: '12h', label: '12j' },
+                { id: '24h', label: '24j' },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setRange(item.id)}
+                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer whitespace-nowrap ${
+                  range === item.id
+                    ? 'bg-slate-800 text-white font-semibold shadow-xs border border-slate-700'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-            <span className="text-slate-300">Kelembapan (%)</span>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-            <span className="text-slate-300">Dew Point (°C)</span>
+
+          {/* Legend Indicators */}
+          <div className="flex items-center space-x-3 text-xs font-medium">
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+              <span className="text-slate-300">Suhu (°C)</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+              <span className="text-slate-300">Kelembapan (%)</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-400" />
+              <span className="text-slate-300">Dew Point (°C)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -58,12 +132,19 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({ logs }) => {
       <div className="h-[280px] w-full pt-4">
         {chartData.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-500 text-xs">
-            Belum ada data telemetry tercatat
+            Belum ada data telemetry pada rentang waktu ini
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="2 4" stroke="#1f293d" vertical={false} />
+            <LineChart
+              data={chartData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="2 4"
+                stroke="#1f293d"
+                vertical={false}
+              />
               <XAxis
                 dataKey="time"
                 stroke="#475569"
@@ -121,3 +202,4 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({ logs }) => {
     </div>
   );
 };
+

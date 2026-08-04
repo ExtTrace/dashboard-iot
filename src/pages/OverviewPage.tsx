@@ -1,6 +1,7 @@
 import React from 'react';
 import type { TelemetryLog } from '../services/api';
 import { MetricsCards } from '../components/MetricsCards';
+import { DailyStatsSummary } from '../components/DailyStatsSummary';
 import { TelemetryChart } from '../components/TelemetryChart';
 
 interface OverviewPageProps {
@@ -15,8 +16,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ telemetryLogs }) => 
       {/* 1. Real-time Metrics Cards */}
       <MetricsCards latestData={latestLog} />
 
-      {/* 2. Historical Trend Chart */}
+      {/* 2. Ringkasan Statistik (Min/Max/Avg & Last Seen) */}
+      <DailyStatsSummary logs={telemetryLogs} />
+
+      {/* 3. Historical Trend Chart */}
       <TelemetryChart logs={telemetryLogs} />
     </div>
   );
 };
+
